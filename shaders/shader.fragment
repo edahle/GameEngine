@@ -1,0 +1,97 @@
+#version 330
+
+in vec4 vColor;
+in vec2 texCoord;
+in vec3 normal;
+in vec3 fragmentPosition;
+
+out vec4 color;
+
+const int MAX_POINT_LIGHT_COUNT = 3;
+
+struct Light {
+	vec3 color;
+	float ambientIntensity;
+	float diffuseIntensity;
+};
+
+struct DirectionalLight {
+	Light base;
+	vec3 direction;
+};
+
+struct PointLight {
+	Light base;
+	vec3 position;
+	float constant;
+	float linear;
+	float exponent;
+};
+
+struct Material {
+	float specularIntensity;
+	float shininess;
+};
+
+uniform int pointLightCount;
+
+uniform DirectionalLight directionalLight;
+uniform PointLight pointLights[MAX_POINT_LIGHT_COUNT];
+
+uniform sampler2D currentTexture;
+uniform Material material;
+uniform vec3 eyePosition;
+
+vec4 calculateLightByDirection(Light light, vec3 direction)
+{
+	vec4 ambientColor = vec4(light.color, 1.0f) * light.ambientIntensity;
+
+	float diffuseFactor = max(dot(normalize(normal), normalize(direction)), 0.0f);
+	vec4 diffuseColor = vec4(light.color, 1.0f) * light.diffuseIntensity * diffuseFactor;
+
+	vec4 specularColor = vec4(0, 0, 0, 0);
+
+	if (diffuseFactor > 0.0f)
+	{
+		vec3 fragToEye = normalize(eyePosition - fragmentPosition);
+		vec3 reflectedVertex = normalize(reflect(direction, normalize(normal)));
+
+		// remember dot product of two unit vectors gives cosine of angle between them!
+		float specularFactor = dot(fragToEye, reflectedVertex);
+		if (specularFactor > 0)
+		{
+			specularFactor = pow(specularFactor, material.shininess);
+			specularColor = vec4(light.color * material.specularIntensity * specularFactor, 1.0f);
+		}
+	}
+
+	return ambientColor + diffuseColor + specularColor;
+}
+
+vec4 calculateDirectionalLight()
+{
+	return calculateLightByDirection(directionalLight.base, directionalLight.direction);
+}
+
+vec4 calculatePointLights()
+{
+	vec4 totalColor = vec4(0, 0, 0, 0);
+	for(int = 0; i < pointLightCount; i++)
+	{
+		vec3 direction = fragmentPosition - pointLights[i].position;
+		float distance = length(direction);
+		direction = normalize(direction);
+		vec4 color = calculateLightByDirection(pointLights[i].base, direction);
+		float attenuation = pointLights[i].exponent * distance * distance + pointLights[i].linear * distance + pointLights[i].constant; //quadratic equation
+		
+		totalColor += (color / attenuation);
+	}
+	return totalColor;
+}
+
+void main()
+{
+	vec4 finalColor = calculateDirectionalLight();
+	finalColor += calculatePointLights();
+	color = texture(currentTexture, texCoord) * finalColor;
+}
