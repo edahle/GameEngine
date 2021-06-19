@@ -1,7 +1,7 @@
-
+#pragma once
 #include "Light.h"
-class PointLight :
-    public Light
+
+class PointLight : public Light
 {
 public:
     PointLight();
@@ -15,7 +15,6 @@ public:
 		GLfloat constant,
 		GLfloat linear,
 		GLfloat exponent
-
 	);
 	void useLight(
 		GLuint ambientIntensityLocation,

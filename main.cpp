@@ -12,6 +12,8 @@
 #include <gtc/matrix_transform.hpp>
 #include <gtc/type_ptr.hpp>
 
+#include "Constants.h"
+
 #include "Mesh.h"
 #include "Shader.h"
 #include "GLWindow.h"
@@ -19,6 +21,7 @@
 #include "Texture.h"
 #include "DirectionalLight.h"
 #include "Material.h"
+#include "PointLight.h"
 
 const float toRadians = 3.14159265f / 180.0f;
 
@@ -31,9 +34,11 @@ Material shinyMaterial;
 Material dullMaterial;
 
 DirectionalLight directionalLight;
+PointLight pointLights[MAX_POINT_LIGHT_COUNT];
 
 Texture greenMetalTexture;
 Texture rustyMetalTexture;
+Texture plainTexture;
 
 GLfloat deltaTime = 0.0f;
 GLfloat lastTime = 0.0f;
@@ -128,6 +133,18 @@ void createMeshes()
 		 0.0f,   1.0f,   0.0f,    0.5f, 1.0f,    0.0f,   0.0f,   0.0f
 	};
 
+	unsigned int floorIndices[] = {
+		0, 2, 1,
+		1, 2, 3
+	};
+
+	GLfloat floorVertices[] = {
+		-10.0f, 0.0f, -10.0f,     0.0f, 0.0f,     0.0f, -1.0f, 0.0f,
+		10.0f, 0.0f, -10.0f,      10.0f, 0.0f,    0.0f, -1.0f, 0.0f,
+		-10.0f, 0.0f, 10.0f,      0.0f, 10.0f,    0.0f, -1.0f, 0.0f,
+		10.0f, 0.0f, 10.0f,       10.0f, 10.0f,   0.0f, -1.0f, 0.0f
+	};
+
 	calculateAverageNormals(indices, 12, vertices, 32, 8, 5);
 
 	Mesh* mesh1 = new Mesh();
@@ -137,6 +154,10 @@ void createMeshes()
 	Mesh* mesh2 = new Mesh();
 	mesh2->createMesh(vertices, indices, 32, 12);
 	meshList.push_back(mesh2);
+
+	Mesh* mesh3 = new Mesh();
+	mesh3->createMesh(floorVertices, floorIndices, 32, 6);
+	meshList.push_back(mesh3);
 }
 
 void createShaders()
@@ -171,11 +192,9 @@ int main()
 		0.25f
 	);
 	directionalLight = DirectionalLight(
-		1.0f,
-		1.0f,
-		1.0f,
-		0.1f,
-		0.3f,
+		1.0f, 1.0f, 1.0f,
+		0.0f,
+		0.0f,
 		glm::vec3(
 			0.0f,
 			0.0f,
@@ -183,12 +202,45 @@ int main()
 		)
 	);
 
+	unsigned int pointLightCount = 0;
+
+	pointLights[0] = PointLight(
+		0.0f, 0.0f, 1.0f,
+		0.0f,
+		1.0f,
+		glm::vec3(
+			4.0f,
+			0.0f,
+			0.0f
+		),
+		0.3f,
+		0.2f,
+		0.1f
+	);
+	pointLightCount++;
+	pointLights[1] = PointLight(
+		0.0f, 1.0f, 0.0f,
+		0.0f,
+		1.0f,
+		glm::vec3(
+			-4.0f,
+			2.0f,
+			0.0f
+		),
+		0.3f,
+		0.1f,
+		0.1f
+	);
+	pointLightCount++;
+
 	greenMetalTexture = Texture("textures/brick.png");
 	greenMetalTexture.loadTexture();
-	rustyMetalTexture = Texture("textures/peach.png");
+	rustyMetalTexture = Texture("textures/sand.png");
 	rustyMetalTexture.loadTexture();
+	plainTexture = Texture("textures/white.png");
+	plainTexture.loadTexture();
 
-	shinyMaterial = Material(1.0f, 32.0f);
+	shinyMaterial = Material(4.0f, 256.0f);
 	dullMaterial = Material(0.3f, 4.0f);
 
 	GLuint uniformProjection = 0;
@@ -231,6 +283,7 @@ int main()
 		uniformEyePosition = shaderList[0]->getEyePositionLocation();
 
 		shaderList[0]->setDirectionalLight(&directionalLight);
+		shaderList[0]->setPointLights(pointLights, pointLightCount);
 
 		glUniformMatrix4fv(uniformProjection, 1, GL_FALSE, glm::value_ptr(projection));
 		glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(camera.calculateViewMatrix()));
@@ -256,6 +309,13 @@ int main()
 		rustyMetalTexture.useTexture();
 		dullMaterial.useMaterial(uniformSpecularIntensity, uniformShininess);
 		meshList[1]->renderMesh();
+
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(0.0f, -2.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		rustyMetalTexture.useTexture();
+		shinyMaterial.useMaterial(uniformSpecularIntensity, uniformShininess);
+		meshList[2]->renderMesh();
 
 		// Unload program
 		glUseProgram(0);
