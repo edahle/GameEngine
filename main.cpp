@@ -22,6 +22,7 @@
 #include "DirectionalLight.h"
 #include "Material.h"
 #include "PointLight.h"
+#include "SpotLight.h"
 
 const float toRadians = 3.14159265f / 180.0f;
 
@@ -35,6 +36,7 @@ Material dullMaterial;
 
 DirectionalLight directionalLight;
 PointLight pointLights[MAX_POINT_LIGHT_COUNT];
+SpotLight spotLights[MAX_SPOT_LIGHT_COUNT];
 
 Texture greenMetalTexture;
 Texture rustyMetalTexture;
@@ -207,7 +209,7 @@ int main()
 	pointLights[0] = PointLight(
 		0.0f, 0.0f, 1.0f,
 		0.0f,
-		1.0f,
+		0.0f,
 		glm::vec3(
 			4.0f,
 			0.0f,
@@ -217,11 +219,11 @@ int main()
 		0.2f,
 		0.1f
 	);
-	pointLightCount++;
+	//pointLightCount++;
 	pointLights[1] = PointLight(
 		0.0f, 1.0f, 0.0f,
 		0.0f,
-		1.0f,
+		0.0f,
 		glm::vec3(
 			-4.0f,
 			2.0f,
@@ -231,11 +233,55 @@ int main()
 		0.1f,
 		0.1f
 	);
-	pointLightCount++;
+	//pointLightCount++;
+
+	unsigned int spotLightCount = 0;
+
+	spotLights[0] = SpotLight(
+		1.0f, 1.0f, 1.0f,
+		0.0f,
+		2.0f,
+		glm::vec3(
+			0.0f,
+			0.0f,
+			0.0f
+		),
+		glm::vec3(
+			0.0,
+			-1.0f,
+			0.0f
+		),
+		1.0f,
+		0.0f,
+		0.0f,
+		20.0f
+	);
+	spotLightCount++;
+
+	spotLights[1] = SpotLight(
+		1.0f, 0.0f, 0.0f,
+		0.0f,
+		1.0f,
+		glm::vec3(
+			0.0f,
+			-1.5f,
+			0.0f
+		),
+		glm::vec3(
+			-100.0f,
+			-1.0f,
+			0.0f
+		),
+		1.0f,
+		0.0f,
+		0.0f,
+		20.0f
+	);
+	//spotLightCount++;
 
 	greenMetalTexture = Texture("textures/brick.png");
 	greenMetalTexture.loadTexture();
-	rustyMetalTexture = Texture("textures/sand.png");
+	rustyMetalTexture = Texture("textures/dirt.png");
 	rustyMetalTexture.loadTexture();
 	plainTexture = Texture("textures/white.png");
 	plainTexture.loadTexture();
@@ -282,8 +328,13 @@ int main()
 		uniformShininess = shaderList[0]->getShininessLocation();
 		uniformEyePosition = shaderList[0]->getEyePositionLocation();
 
+		glm::vec3 flashLightPosition = camera.getCameraPosition();
+		flashLightPosition.y -= 0.3f;
+		spotLights[0].setFlash(flashLightPosition, camera.getCameraDirection());
+
 		shaderList[0]->setDirectionalLight(&directionalLight);
 		shaderList[0]->setPointLights(pointLights, pointLightCount);
+		shaderList[0]->setSpotLights(spotLights, spotLightCount);
 
 		glUniformMatrix4fv(uniformProjection, 1, GL_FALSE, glm::value_ptr(projection));
 		glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(camera.calculateViewMatrix()));
@@ -314,7 +365,7 @@ int main()
 		model = glm::translate(model, glm::vec3(0.0f, -2.0f, 0.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		rustyMetalTexture.useTexture();
-		shinyMaterial.useMaterial(uniformSpecularIntensity, uniformShininess);
+		//shinyMaterial.useMaterial(uniformSpecularIntensity, uniformShininess);
 		meshList[2]->renderMesh();
 
 		// Unload program
