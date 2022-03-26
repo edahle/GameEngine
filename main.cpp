@@ -24,6 +24,10 @@
 #include "PointLight.h"
 #include "SpotLight.h"
 
+#include "assimp/Importer.hpp"
+
+#include "Model.h"
+
 const float toRadians = 3.14159265f / 180.0f;
 
 GLWindow mainWindow;
@@ -33,6 +37,8 @@ Camera camera;
 
 Material shinyMaterial;
 Material dullMaterial;
+
+Model mario;
 
 DirectionalLight directionalLight;
 PointLight pointLights[MAX_POINT_LIGHT_COUNT];
@@ -280,14 +286,17 @@ int main()
 	//spotLightCount++;
 
 	greenMetalTexture = Texture("textures/brick.png");
-	greenMetalTexture.loadTexture();
+	greenMetalTexture.loadTextureAlpha();
 	rustyMetalTexture = Texture("textures/dirt.png");
-	rustyMetalTexture.loadTexture();
+	rustyMetalTexture.loadTextureAlpha();
 	plainTexture = Texture("textures/white.png");
-	plainTexture.loadTexture();
+	plainTexture.loadTextureAlpha();
 
 	shinyMaterial = Material(4.0f, 256.0f);
 	dullMaterial = Material(0.3f, 4.0f);
+
+	mario = Model();
+	mario.LoadModel("Models/Mario.obj");
 
 	GLuint uniformProjection = 0;
 	GLuint uniformModel = 0;
@@ -367,6 +376,12 @@ int main()
 		rustyMetalTexture.useTexture();
 		//shinyMaterial.useMaterial(uniformSpecularIntensity, uniformShininess);
 		meshList[2]->renderMesh();
+
+		// Mario
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(0.0f, -2.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		mario.RenderModel();
 
 		// Unload program
 		glUseProgram(0);
